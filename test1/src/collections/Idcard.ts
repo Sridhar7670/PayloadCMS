@@ -23,7 +23,7 @@ export const IdCard: CollectionConfig = {
       label: 'User Name',
     },
    {
-      name: 'job Title',
+      name: 'jobTitle',
       type: 'text',
       label: 'Job Title',
     },
@@ -31,7 +31,7 @@ export const IdCard: CollectionConfig = {
         name:'position',
         type:'text',
         required:true,
-        label:'position ivvu'
+        label:'position'
     },
     {
         name: 'gender',

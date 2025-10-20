@@ -1,3 +1,4 @@
+import { authenticated } from '@/app/acess/authenticated'
 import type { CollectionConfig } from 'payload'
 
 export const Skills: CollectionConfig = {
@@ -8,6 +9,7 @@ export const Skills: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create:()=>true
   },
   fields: [
     {

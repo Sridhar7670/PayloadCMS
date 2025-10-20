@@ -125,6 +125,9 @@ export interface User {
   id: number;
   updatedAt: string;
   createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -178,7 +181,7 @@ export interface Skill {
 export interface IdCard {
   id: number;
   userName: string;
-  'job Title'?: string | null;
+  jobTitle?: string | null;
   position: string;
   gender?: ('Male' | 'Female' | 'other') | null;
   Address?: string | null;
@@ -257,6 +260,9 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
   email?: T;
   resetPasswordToken?: T;
   resetPasswordExpiration?: T;
@@ -306,7 +312,7 @@ export interface SkillsSelect<T extends boolean = true> {
  */
 export interface IdCardSelect<T extends boolean = true> {
   userName?: T;
-  'job Title'?: T;
+  jobTitle?: T;
   position?: T;
   gender?: T;
   Address?: T;
