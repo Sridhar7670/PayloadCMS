@@ -1,11 +1,17 @@
 import { authenticated } from '@/app/acess/authenticated'
+import { clickhouse } from '@/utilities/clickhouse';
 import type { CollectionConfig } from 'payload'
+
+//just the date helper function noting more..
+const formatCHDate = (date: string | Date): string => {
+  return new Date(date).toISOString().slice(0, 19).replace('T', ' ');
+};
 
 export const IdCard: CollectionConfig = {
   slug: 'IdCard',
   admin: {
     useAsTitle: 'userName',
-    defaultColumns: ['userName', 'address','Jobtitle','position','gender','updatedAt'],
+    defaultColumns: ['userName', 'Address','JobTitle','position','gender','updatedAt'],
   },
   access: {
     admin: authenticated,
@@ -58,71 +64,93 @@ export const IdCard: CollectionConfig = {
         label:'Address'
     }
   ],
+    hooks: {
+      afterChange: [
+        async ({ doc, operation }) => {
+          // 'doc' contains the full document after the change
+          // 'operation' is either 'create' or 'update'
+  
+          console.log(`[Payload Hook] afterChange triggered for: ${doc.userName} (Operation: ${operation})`);
+  
+          // Escape single quotes for SQL
+          const userName = (doc.userName || '').replace(/'/g, "''");
+          const jobTitle = (doc.jobTitle || '').replace(/'/g, "''");
+          const position = (doc.position || '').replace(/'/g,"''");
+          const Address  = (doc.Address || '').replace(/'/g, "''");
+          const gender = (doc.gender || '').replace(/'/g, "''");
+          const updatedAt = formatCHDate(doc.updatedAt);
+  
+          if (operation === 'create') {
+            // --- THIS IS FOR CREATING NEW DOCUMENTS ---
+            try {
+              await clickhouse.insert({
+                table: 'IdCard',
+                format: 'JSONEachRow',
+                values: [
+                  {
+                    id: doc.id,
+                    userName: userName,
+                    jobTitle: jobTitle,
+                    position:position,
+                    Address:Address,
+                    gender:gender,
+                    created_at: formatCHDate(doc.createdAt),
+                    updated_at: updatedAt,
+                  },
+                ],
+              });
+              console.log(`[ClickHouse] Synced 'created' for IdCard: ${doc.userName}`);
+            } catch (err) {
+              console.error('[ClickHouse] Error syncing create:', err);
+            }
+          } else if (operation === 'update') {
+            // --- THIS IS FOR UPDATING EXISTING DOCUMENTS ---
+            try {
+              // NOTE: This assumes your 'id' field in ClickHouse is a Number.
+              // If your ID is a String (UUID), you must wrap ${doc.id} in quotes: '${doc.id}'
+              const updateQuery = `
+                ALTER TABLE IdCard 
+                UPDATE 
+                  userName = '${userName}',
+                  jobTitle = '${jobTitle}',
+                  position = '${position}',
+                  gender   = '${gender}',
+                  Address  = '${Address}'
+                WHERE id = ${doc.id}
+              `;
+  
+              await clickhouse.command({
+                query: updateQuery,
+                // We add this to ensure the mutation completes
+                // See ClickHouse docs for 'mutations_sync'
+                query_params: {
+                  mutations_sync: 1 
+                }
+              });
+              console.log(`[ClickHouse] Synced 'update' for IdCard: ${doc.userName}`);
+            } catch (err) {
+              console.error('[ClickHouse] Error syncing update:', err);
+            }
+          }
+        },
+      ],
+      afterDelete: [
+        async ({ doc }) => {
+          try {
+            // NOTE: Changed '${doc.id}' to ${doc.id}
+            // SQL syntax for numbers should not have quotes.
+            await clickhouse.command({
+              query: `ALTER TABLE IdCard DELETE WHERE id = ${doc.id}`,
+              // Add mutations_sync here as well
+              query_params: {
+                mutations_sync: 1
+              }
+            });
+            console.log(`[ClickHouse] Deleted IdCard: ${doc.userName}`);
+          } catch (err) {
+            console.error('[ClickHouse] Error deleting IdCard:', err);
+          }
+        },
+      ],
+    },
 }
-// src/collections/IdCard.ts
-
-// import type { CollectionConfig } from 'payload'
-
-// export const IdCard: CollectionConfig = {
-//   slug: 'id-card', // Slugs are usually lowercase and hyphenated
-//   admin: {
-//     useAsTitle: 'userName',
-//     // Added your new fields to the default view
-//     defaultColumns: ['userName', 'jobTitle', 'position', 'userImage', 'updatedAt'],
-//   },
-//   access: {
-//     read: () => true,
-//     // write:()=>
-//   },
-//   fields: [
-//     {
-//       name: 'userName',
-//       type: 'text',
-//       required: true,
-//       label: 'User Name', // Changed label for clarity
-//     },
-//     {
-//       name: 'userImage',
-//       type: 'upload', // This field type is for images/files
-//       relationTo: 'media', // Links to the 'media' collection below
-//       required: true,
-//       label: 'User Image',
-//     },
-//     {
-//       name: 'jobTitle',
-//       type: 'text',
-//       required: true,
-//       label: 'Job Title',
-//     },
-//     {
-//         name: 'position',
-//         type: 'text',
-//         required: true,
-//         label: 'Position',
-//     },
-//     {
-//       name: 'gender',
-//       type: 'select', // 'select' is great for predefined options
-//       label: 'Gender',
-//       options: [
-//         {
-//           label: 'Male',
-//           value: 'male',
-//         },
-//         {
-//           label: 'Female',
-//           value: 'female',
-//         },
-//         {
-//           label: 'Other',
-//           value: 'other',
-//         },
-//       ],
-//     },
-//     {
-//       name: 'address',
-//       type: 'textarea',
-//       label: 'Address',
-//     },
-//   ],
-// }
