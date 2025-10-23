@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  clickhouse:
+   
+    image: clickhouse/clickhouse-server
+    container_name: clickhouse-server
+
+    environment:
+      - CLICKHOUSE_USER=myuser
+      - CLICKHOUSE_PASSWORD=secure_password_123
+      - CLICKHOUSE_DB=analytics_db
+
+    ports:
+      # HTTP port for DBeaver, web interface, and most tools
+      - "8123:8123"
+      # Native TCP port for clickhouse-client and high-performance drivers
+      - "9000:9000"
+    
+    volumes:
+      # This persists your data on your host machine
+      - ./clickhouse_data:/var/lib/clickhouse
